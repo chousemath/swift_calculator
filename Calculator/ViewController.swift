@@ -6,6 +6,7 @@
 //  Copyright © 2017 Joseph Sungpil Choi. All rights reserved.
 //
 
+import AVFoundation
 import UIKit
 
 class ViewController: UIViewController {
@@ -14,6 +15,7 @@ class ViewController: UIViewController {
     
     var usersIsTyping: Bool = false
     var charCount: Int = 0
+    private let tooManyCharsSound: SystemSoundID = 1016
     
     //MARK: Instance Variables
     
@@ -24,7 +26,10 @@ class ViewController: UIViewController {
     @IBAction func appendDigit(_ sender: UIButton) {
         // the ! symbol unwraps the optional String?
         // app will crash if currentTitle not set (good)
-        if (charCount >= 13) { return }
+        if (charCount >= 13) {
+            AudioServicesPlaySystemSound(tooManyCharsSound)
+            return
+        }
         let digit = sender.currentTitle!
         if usersIsTyping {
             // print("The digit clicked was: \(digit)")
@@ -34,6 +39,7 @@ class ViewController: UIViewController {
             usersIsTyping = true
         }
         charCount = calcDisplay.text!.characters.count
+        print(charCount)
     }
     
     var calcDisplayVal: Double {
@@ -45,23 +51,22 @@ class ViewController: UIViewController {
         }
     }
     
-    @IBAction func performOperation(_ sender: UIButton) {
-        usersIsTyping = false
-        if let operatorSymbol = sender.currentTitle {
-            switch operatorSymbol {
-            case "π":
-                let flooredPi: Double = limitCalculation(Double.pi)
-                calcDisplay.text = String(flooredPi)
-            case "√":
-                calcDisplay.text = String(limitCalculation(sqrt(calcDisplayVal)))
-            default:
-                break
-            }
-        }
-    }
+    private var calcOperation = CalculatorOperation()
     
-    func limitCalculation(_ a: Double) -> Double {
-        return floor(a * 100000000) / 100000000.0
+    @IBAction func performOperation(_ sender: UIButton) {
+        if usersIsTyping {
+            calcOperation.setOperand(calcDisplayVal)
+            usersIsTyping = false
+        }
+        
+        if let operatorSymbol = sender.currentTitle {
+            calcOperation.performOperation(operatorSymbol)
+        }
+        
+        if let result = calcOperation.result {
+            calcDisplayVal = result
+            charCount = calcDisplay.text!.characters.count
+        }
     }
     
     override func viewDidLoad() {
